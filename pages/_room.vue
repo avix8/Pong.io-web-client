@@ -1,7 +1,10 @@
 <template>
   <div>
-    <lobby :socket="socket" />
-    <game :socket="socket" />
+    <label id="ping" style="position: fixed; z-index: 10 !important">
+      ping: {{ ping }} ms
+    </label>
+    <lobby ref="lobby" :socket="socket" />
+    <game ref="game" :socket="socket" />
   </div>
 </template>
 
@@ -12,12 +15,30 @@ export default {
   data() {
     return {
       socket: {},
+      ping: 0,
     }
   },
   created() {
     if (process.client) {
       this.socket = io(process.env.backendURL)
       this.socket.emit('joinRoom', this.$route.params.room)
+
+      this.socket.on('gameStart', (data) => {
+        this.$refs.game.start(data)
+        this.$refs.lobby.hide()
+      })
+
+      this.socket.on('gameFinish', (data) => {
+        this.$refs.game.finish(data)
+        this.$refs.lobby.show()
+      })
+
+      this.socket.on('pong_', (time) => {
+        this.ping = Date.now() - time
+      })
+      setInterval(() => {
+        this.socket.emit('ping_', Date.now())
+      }, 1000)
     }
   },
 }
