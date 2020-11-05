@@ -21,11 +21,15 @@ export default {
   },
   mounted() {
     this.game = new Game(document.getElementById('viewport'))
-    this.game.setTestScene()
+    // this.game.setTestScene()
+    this.socket.on('worldUpdate', (data) => {
+      this.game.worldUpdate(data)
+    })
   },
   methods: {
     start(data) {
       this.game.start(data)
+      this.game.setScene(data)
     },
     finish() {
       this.game.finish()

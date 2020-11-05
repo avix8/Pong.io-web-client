@@ -4,7 +4,7 @@ const CameraControls = function (camera) {
   let isMouseDown = false
   let angleX = 0
   let angleY = 0.2
-  let radious = 5
+  let radious = 15
 
   const updatePos = function () {
     camera.position.x = radious * Math.sin(angleX) * Math.cos(angleY)
@@ -27,15 +27,8 @@ const CameraControls = function (camera) {
   }
 
   const zoom = function (event) {
-    // var fovMAX = 110;
-    // var fovMIN = 30;
-
     radious *= 1 - event.wheelDeltaY * 0.001
     updatePos()
-
-    // camera.fov -= event.wheelDeltaY * 0.02;
-    // camera.fov = Math.max(Math.min(camera.fov, fovMAX), fovMIN);
-    // camera.updateProjectionMatrix();
   }
 
   document.addEventListener('mousewheel', (event) => zoom(event), false)
@@ -50,19 +43,20 @@ class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     this.renderer.setClearColor('#aaaaaa')
     this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.shadowMap.enabled = true
+    this.renderer.shadowMapSoft = true
 
     this.scene = new THREE.Scene()
 
     this.camera = new THREE.PerspectiveCamera(
-      90,
+      80,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000
+      50
     )
     this.camera.up.set(0, 0, 1)
 
     this.cameraControls = new CameraControls(this.camera)
-    // this.cameraControls.updatePos()
 
     window.addEventListener('resize', () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -80,7 +74,6 @@ class Game {
     })
     const plane = new THREE.Mesh(geometry, material)
     plane.position.set(0, 0, 0)
-    // plane.rotation.x = Math.PI / 2
     this.scene.add(plane)
 
     // Box
@@ -98,15 +91,64 @@ class Game {
   // light.position.set(10, 25, 0);
   // scene.add(light);
 
-  // const fps = document.getElementById('fps')
-  // let time = Date.now()
-  // let nt
   render() {
     this.renderer.render(this.scene, this.camera)
+  }
 
-    // nt = Date.now()
-    // fps.innerHTML = Math.floor(1000 / (nt - time))
-    // time = nt
+  setScene(data) {
+    this.WALLS = []
+    this.BALLS = []
+    data.worldInfo.walls.forEach((w) => {
+      const material = new THREE.LineBasicMaterial({ color: 0x0000ff })
+      const points = []
+
+      points.push(new THREE.Vector3(w.start.x, w.start.y, 0))
+      points.push(new THREE.Vector3(w.end.x, w.end.y, 0))
+
+      const geometry = new THREE.BufferGeometry().setFromPoints(points)
+      const line = new THREE.Line(geometry, material)
+      this.WALLS.push(line)
+      this.scene.add(line)
+    })
+    data.worldInfo.balls.forEach((b) => {
+      const geometry = new THREE.SphereGeometry(b.r, 32, 32)
+      const material = new THREE.MeshLambertMaterial({ color: 0xffff00 })
+      const sphere = new THREE.Mesh(geometry, material)
+      sphere.position.z = b.r
+      sphere.castShadow = true
+      this.BALLS.push(sphere)
+      this.scene.add(sphere)
+    })
+
+    // plane
+    const geometry = new THREE.CircleGeometry(10, 64)
+    const material = new THREE.MeshLambertMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+    })
+    const plane = new THREE.Mesh(geometry, material)
+    plane.receiveShadow = true
+    this.scene.add(plane)
+
+    const light = new THREE.DirectionalLight(0xffffff, 1, 100)
+    light.position.set(5, 10, 20)
+    light.shadow.camera.top = 10
+    light.shadow.camera.bottom = -10
+    light.shadow.camera.left = -10
+    light.shadow.camera.right = 10
+    light.castShadow = true
+
+    this.scene.add(light)
+
+    const helper = new THREE.CameraHelper(light.shadow.camera)
+    this.scene.add(helper)
+  }
+
+  worldUpdate(data) {
+    data.balls.forEach((b, index) => {
+      this.BALLS[index].position.x = b.pos.x
+      this.BALLS[index].position.y = b.pos.y
+    })
   }
 
   animate() {
