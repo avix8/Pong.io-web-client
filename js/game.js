@@ -37,9 +37,19 @@ const CameraControls = function (camera) {
   document.addEventListener('mousemove', onMouseMove, false)
 }
 
+const Controls = function (socket) {
+  document.addEventListener(
+    'keydown',
+    (e) => socket.emit('keydown', e.key),
+    false
+  )
+  document.addEventListener('keyup', (e) => socket.emit('keyup', e.key), false)
+}
+
 class Game {
-  constructor(canvas) {
+  constructor(canvas, socket) {
     this.running = false
+    this.socket = socket
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
     this.renderer.setClearColor('#aaaaaa')
     this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -57,6 +67,7 @@ class Game {
     this.camera.up.set(0, 0, 1)
 
     this.cameraControls = new CameraControls(this.camera)
+    this.controls = new Controls(this.socket)
 
     window.addEventListener('resize', () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -66,7 +77,7 @@ class Game {
   }
 
   setTestScene() {
-    // plane
+    // Plane
     const geometry = new THREE.PlaneGeometry(5, 5)
     const material = new THREE.MeshBasicMaterial({
       color: 0xffffff,
@@ -86,36 +97,41 @@ class Game {
     this.scene.add(box)
   }
 
-  // light
-  // let light = new THREE.PointLight(0xffffff, 1, 0);
-  // light.position.set(10, 25, 0);
-  // scene.add(light);
-
   render() {
     this.renderer.render(this.scene, this.camera)
   }
 
   setScene(data) {
-    this.WALLS = []
+    this.PLAYERS = []
     this.BALLS = []
-    data.worldInfo.walls.forEach((w) => {
-      const material = new THREE.LineBasicMaterial({ color: 0x0000ff })
-      const points = []
+    data.worldInfo.players.forEach((p) => {
+      const geometry = new THREE.BoxGeometry(
+        this.paddleSize,
+        this.ballRadius * 2,
+        this.ballRadius * 2
+      )
+      const material = new THREE.MeshLambertMaterial({ color: p.color })
+      const cube = new THREE.Mesh(geometry, material)
+      cube.castShadow = true
 
-      points.push(new THREE.Vector3(w.start.x, w.start.y, 0))
-      points.push(new THREE.Vector3(w.end.x, w.end.y, 0))
+      cube.position.set(p.pos.x, p.pos.y, this.ballRadius)
+      cube.rotation.set(0, 0, -Math.atan(p.pos.x / p.pos.y))
+      cube.offset = {
+        x: p.unitFromCenter.x * this.ballRadius,
+        y: p.unitFromCenter.y * this.ballRadius,
+      }
 
-      const geometry = new THREE.BufferGeometry().setFromPoints(points)
-      const line = new THREE.Line(geometry, material)
-      this.WALLS.push(line)
-      this.scene.add(line)
+      this.PLAYERS.push(cube)
+      this.scene.add(cube)
     })
     data.worldInfo.balls.forEach((b) => {
       const geometry = new THREE.SphereGeometry(b.r, 32, 32)
       const material = new THREE.MeshLambertMaterial({ color: 0xffff00 })
       const sphere = new THREE.Mesh(geometry, material)
-      sphere.position.z = b.r
       sphere.castShadow = true
+
+      sphere.position.z = b.r
+
       this.BALLS.push(sphere)
       this.scene.add(sphere)
     })
@@ -140,14 +156,18 @@ class Game {
 
     this.scene.add(light)
 
-    const helper = new THREE.CameraHelper(light.shadow.camera)
-    this.scene.add(helper)
+    // const helper = new THREE.CameraHelper(light.shadow.camera)
+    // this.scene.add(helper)
   }
 
   worldUpdate(data) {
     data.balls.forEach((b, index) => {
       this.BALLS[index].position.x = b.pos.x
       this.BALLS[index].position.y = b.pos.y
+    })
+    data.players.forEach((p, index) => {
+      this.PLAYERS[index].position.x = this.PLAYERS[index].offset.x + p.pos.x
+      this.PLAYERS[index].position.y = this.PLAYERS[index].offset.y + p.pos.y
     })
   }
 
@@ -159,7 +179,9 @@ class Game {
   }
 
   start(data) {
-    console.log(data)
+    this.ballRadius = data.worldInfo.ballRadius
+    this.paddleSize = data.worldInfo.paddleSize
+    this.setScene(data)
     this.running = true
     this.animate()
   }
