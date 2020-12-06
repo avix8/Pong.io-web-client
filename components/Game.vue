@@ -1,9 +1,7 @@
 <template>
   <div v-show="game.running">
     <canvas id="viewport"></canvas>
-    <div style="position: fixed; top: 60px; color: white">
-      <label id="fps">0</label>
-    </div>
+    <score-table ref="scoreTable" :socket="socket" />
   </div>
 </template>
 
@@ -21,7 +19,6 @@ export default {
   },
   mounted() {
     this.game = new Game(document.getElementById('viewport'), this.socket)
-    // this.game.setTestScene()
     this.socket.on('worldUpdate', (data) => {
       this.game.worldUpdate(data)
     })
@@ -29,6 +26,7 @@ export default {
   methods: {
     start(data) {
       this.game.start(data)
+      this.$refs.scoreTable.start(data.players)
     },
     finish() {
       this.game.finish()

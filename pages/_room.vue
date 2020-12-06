@@ -5,6 +5,7 @@
     </label>
     <lobby ref="lobby" :socket="socket" />
     <game ref="game" :socket="socket" />
+    <winner ref="winner" />
   </div>
 </template>
 
@@ -29,8 +30,9 @@ export default {
       })
 
       this.socket.on('gameFinish', (data) => {
-        this.$refs.game.finish(data)
+        this.$refs.game.finish()
         this.$refs.lobby.show()
+        this.$refs.winner.show(data.winner)
       })
 
       this.socket.on('pong_', (time) => {

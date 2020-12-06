@@ -1,41 +1,5 @@
 import * as THREE from 'three'
-
-const CameraControls = function (camera) {
-  let isMouseDown = false
-  let angleX = 0
-  let angleY = 0.2
-  let radious = 15
-
-  const updatePos = function () {
-    camera.position.x = radious * Math.sin(angleX) * Math.cos(angleY)
-    camera.position.y = radious * Math.cos(angleX) * Math.cos(angleY)
-    camera.position.z = radious * Math.sin(angleY)
-    camera.lookAt(0, 0, 0)
-  }
-
-  updatePos()
-
-  const onMouseMove = function (event) {
-    if (isMouseDown) {
-      angleX += event.movementX * 0.004
-      angleY += event.movementY * 0.004
-
-      angleY = Math.min(Math.PI / 2, Math.max(0.01, angleY))
-
-      updatePos()
-    }
-  }
-
-  const zoom = function (event) {
-    radious *= 1 - event.wheelDeltaY * 0.001
-    updatePos()
-  }
-
-  document.addEventListener('mousewheel', (event) => zoom(event), false)
-  document.addEventListener('mousedown', () => (isMouseDown = true), false)
-  document.addEventListener('mouseup', () => (isMouseDown = false), false)
-  document.addEventListener('mousemove', onMouseMove, false)
-}
+import CameraControls from './CameraControls'
 
 const Controls = function (socket) {
   document.addEventListener(
@@ -76,27 +40,6 @@ class Game {
     })
   }
 
-  setTestScene() {
-    // Plane
-    const geometry = new THREE.PlaneGeometry(5, 5)
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide,
-    })
-    const plane = new THREE.Mesh(geometry, material)
-    plane.position.set(0, 0, 0)
-    this.scene.add(plane)
-
-    // Box
-    const boxGeometry = new THREE.BoxGeometry(1, 1, 1)
-    const boxMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-    })
-    const box = new THREE.Mesh(boxGeometry, boxMaterial)
-    box.position.set(0, 0, 0.5)
-    this.scene.add(box)
-  }
-
   render() {
     this.renderer.render(this.scene, this.camera)
   }
@@ -104,7 +47,7 @@ class Game {
   setScene(data) {
     this.PLAYERS = []
     this.BALLS = []
-    data.worldInfo.players.forEach((p) => {
+    data.players.forEach((p) => {
       const geometry = new THREE.BoxGeometry(
         this.paddleSize,
         this.ballRadius * 2,
@@ -114,17 +57,24 @@ class Game {
       const cube = new THREE.Mesh(geometry, material)
       cube.castShadow = true
 
-      cube.position.set(p.pos.x, p.pos.y, this.ballRadius)
-      cube.rotation.set(0, 0, -Math.atan(p.pos.x / p.pos.y))
+      cube.rotation.set(0, 0, -Math.atan2(p.pos.x, p.pos.y))
+      if (p.id === this.socket.id) {
+        this.cameraControls.setAngleX(Math.atan2(p.pos.x, p.pos.y))
+      }
       cube.offset = {
         x: p.unitFromCenter.x * this.ballRadius,
         y: p.unitFromCenter.y * this.ballRadius,
       }
+      cube.position.set(
+        p.pos.x + cube.offset.x,
+        p.pos.y + cube.offset.y,
+        this.ballRadius
+      )
 
       this.PLAYERS.push(cube)
       this.scene.add(cube)
     })
-    data.worldInfo.balls.forEach((b) => {
+    data.balls.forEach((b) => {
       const geometry = new THREE.SphereGeometry(b.r, 32, 32)
       const material = new THREE.MeshLambertMaterial({ color: 0xffff00 })
       const sphere = new THREE.Mesh(geometry, material)
@@ -155,6 +105,8 @@ class Game {
     light.castShadow = true
 
     this.scene.add(light)
+    const ambientLight = new THREE.AmbientLight(0x404040)
+    this.scene.add(ambientLight)
 
     // const helper = new THREE.CameraHelper(light.shadow.camera)
     // this.scene.add(helper)
@@ -179,8 +131,11 @@ class Game {
   }
 
   start(data) {
-    this.ballRadius = data.worldInfo.ballRadius
-    this.paddleSize = data.worldInfo.paddleSize
+    this.ballRadius = data.ballRadius
+    this.paddleSize = data.paddleSize
+    while (this.scene.children.length > 0) {
+      this.scene.remove(this.scene.children[0])
+    }
     this.setScene(data)
     this.running = true
     this.animate()

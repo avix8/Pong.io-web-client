@@ -2,10 +2,8 @@ import colors from 'vuetify/es5/util/colors'
 import { config } from './config'
 
 /* содержимое config.js:
-export const config = { // мои параметры          // значения с которыми у вас всё будет работать на локальной машине
   backendURL: 'http://83.246.145.119:4000',       // 'http://localhost:4000'
   frontendURL: 'http://83.246.145.119:3000',      // 'http://localhost:3000'
-  localIP: '192.168.1.69',                        // 'localhost'
 }
 */
 
@@ -19,7 +17,7 @@ export default {
    */
   server: {
     port: 3000,
-    host: config.localIP, // local ip
+    host: '0.0.0.0',
   },
 
   // Global page headers (https://go.nuxtjs.dev/config-head)
@@ -66,7 +64,7 @@ export default {
   vuetify: {
     customVariables: ['~/assets/variables.scss'],
     theme: {
-      dark: true,
+      dark: false,
       themes: {
         dark: {
           primary: colors.blue.darken2,

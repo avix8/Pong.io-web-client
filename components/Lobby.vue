@@ -8,11 +8,11 @@
         <v-menu
           v-if="!ready"
           v-model="menu"
-          right
+          bottom
           :close-on-content-click="false"
         >
           <template v-slot:activator="{ on }">
-            <v-icon light v-on="on"> mdi-pencil </v-icon>
+            <v-icon v-on="on"> mdi-pencil </v-icon>
           </template>
           <v-card :color="color">
             <v-card-text class="pa-1">
@@ -27,7 +27,12 @@
         </v-menu>
       </v-list-item-avatar>
       <v-list-item-content>
-        <v-text-field v-model="name" :disabled="ready" clearable />
+        <v-text-field
+          v-model="name"
+          :disabled="ready"
+          clearable
+          label="Введите имя"
+        />
       </v-list-item-content>
 
       <v-list-item-action>
@@ -64,7 +69,7 @@ export default {
       dialog: true,
       players: [],
       ready: false,
-      name: 'Введите имя',
+      name: '',
       color: '#ff0000',
       menu: false,
     }
@@ -102,6 +107,6 @@ export default {
 
 <style scoped>
 .ready {
-  background-color: darkgreen;
+  background-color: lightgreen;
 }
 </style>
