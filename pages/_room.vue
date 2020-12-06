@@ -6,11 +6,13 @@
     <lobby ref="lobby" :socket="socket" />
     <game ref="game" :socket="socket" />
     <winner ref="winner" />
+    <notifications />
   </div>
 </template>
 
 <script>
 import io from 'socket.io-client'
+import { mapMutations } from 'vuex'
 
 export default {
   data() {
@@ -23,6 +25,10 @@ export default {
     if (process.client) {
       this.socket = io(process.env.backendURL)
       this.socket.emit('joinRoom', this.$route.params.room)
+
+      this.socket.on('msg', (msg) => {
+        this.notify({ text: msg, color: 'info' })
+      })
 
       this.socket.on('gameStart', (data) => {
         this.$refs.game.start(data)
@@ -42,6 +48,11 @@ export default {
         this.socket.emit('ping_', Date.now())
       }, 1000)
     }
+  },
+  methods: {
+    ...mapMutations({
+      notify: 'notifications/notify',
+    }),
   },
 }
 </script>
