@@ -114,12 +114,12 @@ class Game {
 
   worldUpdate(data) {
     data.balls.forEach((b, index) => {
-      this.BALLS[index].position.x = b.pos.x
-      this.BALLS[index].position.y = b.pos.y
+      this.BALLS[index].position.x = b.x
+      this.BALLS[index].position.y = b.y
     })
     data.players.forEach((p, index) => {
-      this.PLAYERS[index].position.x = this.PLAYERS[index].offset.x + p.pos.x
-      this.PLAYERS[index].position.y = this.PLAYERS[index].offset.y + p.pos.y
+      this.PLAYERS[index].position.x = this.PLAYERS[index].offset.x + p.x
+      this.PLAYERS[index].position.y = this.PLAYERS[index].offset.y + p.y
     })
   }
 
